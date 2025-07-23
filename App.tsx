@@ -4,18 +4,28 @@
  *
  * @format
  */
-
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StyleSheet, View, Text } from 'react-native';
+import BootSplash from 'react-native-bootsplash';
 
 function App() {
-  const isDarkMode = useColorScheme() === 'dark';
+  useEffect(() => {
+    const init = async () => {
+      // …do multiple sync or async tasks
+    };
+
+    init().finally(async () => {
+      await BootSplash.hide({ fade: true });
+    });
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NewAppScreen templateFileName="App.tsx" />
-    </View>
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <Text>Teste</Text>
+      </View>
+    </SafeAreaProvider>
   );
 }
 
