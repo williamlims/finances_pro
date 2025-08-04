@@ -3,22 +3,15 @@ import { View, Text } from 'react-native';
 import { Button } from '@rneui/themed';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from "@react-native-vector-icons/fontawesome";
-import HeaderHome from './components/HeaderHome';
+import Header from '../components/Header';
 
-export function Test1() {
+export function Index() {
     const navigation = useNavigation();
     return (
         <>
-        <HeaderHome title='Finanças Pro ' />
+        <Header title='Limites' />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
 
-            
-
-            <Text>Test 1 </Text>
-            
-            <Button onPress={() => navigation.navigate('Test2')}>
-                TESTE 2 <FontAwesome name="rocket" color="white" />
-            </Button>
             
         </View></>
     );

@@ -1,22 +1,18 @@
 import * as React from 'react';
 import { View, Text } from 'react-native';
-import { Button } from '@react-navigation/elements';
+import { Button } from '@rneui/themed';
 import { useNavigation } from '@react-navigation/native';
+import { FontAwesome } from "@react-native-vector-icons/fontawesome";
 import Header from './components/Header';
 
-export function Test2() {
+export function Appellants() {
     const navigation = useNavigation();
     return (
         <>
-        <Header title='Cadastro' />
+        <Header title='Recorrentes' />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text>Teste 2</Text>
+
             
-            <Button onPress={() => navigation.navigate('Test1')}>
-                TESTE 1
-                
-            </Button>
-        </View>
-        </>
+        </View></>
     );
 }
