@@ -1,10 +1,6 @@
 import React from 'react';
-import {
-    StyleSheet,
-} from 'react-native';
-import { Header as HeaderRNE, HeaderProps, Icon } from '@rneui/themed';
-import { Button } from '@rneui/themed';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StyleSheet } from 'react-native';
+import { Header as HeaderRNE } from '@rneui/themed';
 import { useNavigation } from '@react-navigation/native';
 
 type HeaderComponentProps = {
@@ -12,23 +8,15 @@ type HeaderComponentProps = {
     view?: string;
 };
 
-type ParamList = {
-    Detail: {
-        openDrawer: void;
-    };
-};
-
 const HeaderHome: React.FunctionComponent<HeaderComponentProps> = (props) => {
     const navigation = useNavigation();
     return (
-        <SafeAreaProvider>
-            <HeaderRNE
-                centerComponent={{ text: props.title, style: styles.heading }}
-                containerStyle={{
-                    backgroundColor: '#0f3762',
-                }}
-            />
-        </SafeAreaProvider>
+        <HeaderRNE
+            centerComponent={{ text: props.title, style: styles.heading }}
+            containerStyle={{
+                backgroundColor: '#0f3762',
+            }}
+        />
     );
 };
 

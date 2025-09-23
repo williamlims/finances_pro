@@ -1,27 +1,46 @@
-import React, { useState } from 'react';
+import * as React from 'react';
 import { View, Text, ScrollView, TextInput } from 'react-native';
 import { Button, Card, Dialog } from '@rneui/themed';
-import Header from '../components/Header';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Header from '../../components/Header';
 import {Picker} from '@react-native-picker/picker';
+import { useState, useEffect } from 'react';
 import DatePicker from 'react-native-date-picker';
-import { getDBConnection } from '../db/db-connection';
+import { getDBConnection } from '../../db/db-connection';
 
-export function RegisterExpense() {
+type RouteParams = {
+  id: number;
+};
 
+export function EditRegisterExpense() {
+
+    const navigation = useNavigation();
     const [tipo, setTipo] = useState("");
     const [despesa, setDespesa] = useState("");
-    const [recorrente, setRecorrente] = useState(0);
+    const [recorrente, setRecorrente] = useState("");
     const [valor, setValor] = useState("");
     const [descricao, setDescricao] = useState("");
     const [date, setDate] = useState(new Date());
+    const [atualizado, setAtualizado] = useState(0);
 
     const [visivel, setVisivel] = useState(false);
     const [tituloDialog, setTituloDialog] = useState("");
     const [textoDialog, setTextoDialog] = useState("");
-    
+
     const mudaDialog = () => {
         setVisivel(!visivel);
     };
+
+    const verificaAtualizado = () => {
+        if (atualizado === 1) {
+            navigation.goBack();
+        } else {
+            mudaDialog();
+        }
+    };
+
+    const route = useRoute();
+    const { id } = route.params as RouteParams;
 
     const formatCurrency = (text: any) => {
         let num = text.replace(/\D/g, "");
@@ -34,84 +53,6 @@ export function RegisterExpense() {
     const handleChange = (text: any) => {
         setValor(formatCurrency(text));
     };
-
-    const salvarDespesa = async () => {
-        
-        if (tipo == "") {
-            setTituloDialog("Campo Tipo");
-            setTextoDialog("Escolha uma das opções do campo tipo.");
-            mudaDialog();
-            return;
-        }
-
-        if (despesa == "") {
-            setTituloDialog("Campo Despesa");
-            setTextoDialog("Escolha uma das opções do campo despesa.");
-            mudaDialog();
-            return;
-        }
-
-        if (valor == "") {
-            setTituloDialog("Campo Valor");
-            setTextoDialog("Você esqueceu de inserir um valor para está despesa.");
-            mudaDialog();
-            return;
-        }
-
-        if (descricao == "") {
-            setTituloDialog("Campo Descrição");
-            setTextoDialog("Insira uma descrição para está despesa.");
-            mudaDialog();
-            return;
-        }
-
-        const db = await getDBConnection();
-
-        try {
-            db.transaction((tx) => {
-                tx.executeSql(
-                    'INSERT INTO despesas (tipo, despesa, recorrente, valor, descricao, ano, mes, dia, data_ocorrencia, data_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [
-                        tipo,
-                        despesa,
-                        recorrente,
-                        parseFloat(valor.replace(",", ".")),
-                        descricao,
-                        date.getFullYear(),
-                        date.getMonth()+1,
-                        date.getDate(),
-                        `${date.getFullYear()}-${(date.getMonth() + 1)
-                        .toString()
-                        .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`,
-                        new Date().toString()
-                    ],
-                    (tx, results) => {
-                    if (results.rowsAffected > 0) {
-                        setTituloDialog("Registro de Despesa");
-                        setTextoDialog("Registro efetuado com sucesso!");
-                        setTipo("");
-                        setDespesa("");
-                        setRecorrente(0);
-                        setValor("");
-                        setDescricao("");
-                    } else {
-                        setTituloDialog("Falha no Registro");
-                        setTextoDialog("Registro não pôde ser efetuado no momento!");
-                    }
-                    },
-                    (tx, error) => {
-                        setTituloDialog("Erro");
-                        setTextoDialog(`Houve um erro: ${error.message || JSON.stringify(error)}`);
-                    }
-                );
-            });
-        } catch (err: any) {
-            setTituloDialog("Erro");
-            setTextoDialog(`Houve um erro: ${err.message || JSON.stringify(err)}`);
-        }
-
-        mudaDialog();
-    }
 
     const options:any = {
         ["Moradia"]: [
@@ -197,6 +138,106 @@ export function RegisterExpense() {
         ],
     };
 
+    useEffect(() => {
+        const getResult = async () => {
+            const db = await getDBConnection();
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT * FROM despesas WHERE id = ?',
+                    [id],
+                    (tx, results) => {
+                    if (results.rows.length > 0) {
+                        setTipo(results.rows.item(0).tipo);
+                        setDespesa(results.rows.item(0).despesa);
+                        setRecorrente(results.rows.item(0).recorrente);
+                        setValor(formatCurrency((results.rows.item(0).valor).toString()));
+                        setDescricao(results.rows.item(0).descricao);
+                        setDate(new Date(results.rows.item(0).data_ocorrencia));
+                    }
+                    },
+                    (tx, error) => {
+                        console.error('Erro ao acessar o banco de dados:', error);
+                    }
+                );
+            });
+        }
+        
+        getResult();
+
+    }, [id]);
+
+    const atualizarDespesa = async () => {
+                        
+        if (tipo == "") {
+            setTituloDialog("Campo Tipo");
+            setTextoDialog("Escolha uma das opções do campo tipo.");
+            mudaDialog();
+            return;
+        }
+
+        if (despesa == "") {
+            setTituloDialog("Campo Despesa");
+            setTextoDialog("Escolha uma das opções do campo despesa.");
+            mudaDialog();
+            return;
+        }
+
+        if (valor == "") {
+            setTituloDialog("Campo Valor");
+            setTextoDialog("Você esqueceu de inserir um valor para está despesa.");
+            mudaDialog();
+            return;
+        }
+
+        if (descricao == "") {
+            setTituloDialog("Campo Descrição");
+            setTextoDialog("Insira uma descrição para está despesa.");
+            mudaDialog();
+            return;
+        }
+
+        const db = await getDBConnection();
+
+        try {
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'UPDATE despesas SET tipo = ?, despesa = ?, recorrente = ?, valor = ?, descricao = ?, data_ocorrencia = ? WHERE id=?',
+                    [ 
+                        tipo,
+                        despesa,
+                        recorrente,
+                        valor,
+                        descricao,
+                        `${date.getFullYear()}-${(date.getMonth() + 1)
+                        .toString()
+                        .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`,
+                        id
+                    ],
+                    (tx, results) => {
+                    if (results.rowsAffected > 0) {
+                        setTituloDialog("Atualização de Despesa");
+                        setTextoDialog("Atualização efetuada com sucesso!");
+                        setAtualizado(1);
+                    } else {
+                        setTituloDialog("Falha na Atualização");
+                        setTextoDialog("Atualização não pôde ser efetuado no momento!");
+                    }
+                    },
+                    (tx, error) => {
+                        setTituloDialog("Erro");
+                        setTextoDialog(`Houve um erro: ${error.message || JSON.stringify(error)}`);
+                    }
+                );
+            });
+        } catch (err: any) {
+            setTituloDialog("Erro");
+            setTextoDialog(`Houve um erro: ${err.message || JSON.stringify(err)}`);
+        }
+
+        mudaDialog();
+
+    }
+
     return (
         <>
             <Header title='Despesa' />
@@ -205,11 +246,11 @@ export function RegisterExpense() {
                 <View style={{ flexDirection: 'column', gap: 10, justifyContent: 'space-between'}}> 
                     
                     <Card containerStyle={{ marginHorizontal: 0 }}>
-                        <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f3762', fontSize: 18 }}>CADASTRAR DESPESAS</Text>
+                        <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f3762', fontSize: 18 }}>ATUALIZAR DESPESA</Text>
                         <Card.Divider />
                         <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-start'}}>
                             <Text style={{ fontSize: 16 }}>
-                                Nesta tela é possível cadastrar todas as despesas e gastos do dia a dia. É necessário atenção na classificação do tipo de despesa.
+                                Nesta tela é possível atualizar o registro de sua despesa caso tenha cometido algum engano.
                             </Text>
                         </View>
                     </Card>
@@ -279,7 +320,6 @@ export function RegisterExpense() {
                         value={valor}
                         placeholder="0,00"
                         keyboardType="numeric"
-                        maxLength={14}
                     />
 
                     <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 10, textAlign: 'left' }}>
@@ -292,7 +332,6 @@ export function RegisterExpense() {
                         value={descricao}
                         multiline
                         numberOfLines={10}
-                        maxLength={100}
                     />
 
                     <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>
@@ -307,7 +346,13 @@ export function RegisterExpense() {
                         style={{alignSelf: 'center', marginTop: 0}}
                     />
 
-                    <Button size="lg" onPress={salvarDespesa}> Salvar </Button>
+                    <Button 
+                        size="lg"
+                        buttonStyle={{ backgroundColor: '#9400d3' }}
+                        onPress={atualizarDespesa}
+                    > 
+                        Atualizar registro
+                    </Button>
 
                     <Dialog
                         isVisible={visivel}
@@ -316,14 +361,14 @@ export function RegisterExpense() {
                         <Dialog.Title title={tituloDialog}/>
                         <Text>{textoDialog}</Text>
                         <Dialog.Actions>
-                            <Dialog.Button title="OK" onPress={mudaDialog}/>
+                            <Dialog.Button title="OK" onPress={verificaAtualizado}/>
                         </Dialog.Actions>
                     </Dialog>
-
-                    <Text>{'\n\n\n'}</Text>
-                   
-                </View>
                 
+                    <Text>{'\n\n\n'}</Text>
+
+                </View>
+
             </ScrollView>
         </>
     );

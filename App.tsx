@@ -4,8 +4,6 @@ import { StyleSheet, View, Text } from 'react-native';
 import BootSplash from 'react-native-bootsplash';
 import { NavigationContainer, TransitionSpecs } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Test1 } from './screens/Test1';
-import { Test2 } from './screens/Test2';
 import { Home } from './screens/Home';
 import { Index as IndexRegister } from './screens/register/Index';
 import { RegisterExpense } from './screens/register/RegisterExpense';
@@ -19,8 +17,12 @@ import { Index as IndexRegisters } from './screens/registers/Index';
 import { ExpenseRecords } from './screens/registers/ExpenseRecords';
 import { RecipeRecords } from './screens/registers/RecipeRecords';
 import { GoodsRecords } from './screens/registers/GoodsRecords';
+import { EditRegisterGoods } from './screens/registers/edit/EditRegisterGoods';
+import { EditRegisterExpense } from './screens/registers/edit/EditRegisterExpense';
+import { EditRegisterRecipe } from './screens/registers/edit/EditRegisterRecipe';
 import { Appellants } from './screens/Appellants';
 import { Data } from './screens/Data';
+import { About } from './screens/About';
 
 const Stack = createNativeStackNavigator();
 
@@ -68,11 +70,13 @@ function RootStackNav() {
         <Stack.Screen name="ExpenseRecords" component={ExpenseRecords} options={{ headerShown: false }}/>
         <Stack.Screen name="RecipeRecords" component={RecipeRecords} options={{ headerShown: false }}/>
         <Stack.Screen name="GoodsRecords" component={GoodsRecords} options={{ headerShown: false }}/>
+        <Stack.Screen name="EditRegisterGoods" component={EditRegisterGoods} options={{ headerShown: false }}/>
+        <Stack.Screen name="EditRegisterExpense" component={EditRegisterExpense} options={{ headerShown: false }}/>
+        <Stack.Screen name="EditRegisterRecipe" component={EditRegisterRecipe} options={{ headerShown: false }}/>
         <Stack.Screen name="Appellants" component={Appellants} options={{ headerShown: false }}/>
         <Stack.Screen name="Data" component={Data} options={{ headerShown: false }}/>
+        <Stack.Screen name="About" component={About} options={{ headerShown: false }}/>
 
-        <Stack.Screen name="Test1" component={Test1} options={{ headerShown: false }}/>
-        <Stack.Screen name="Test2" component={Test2} options={{ headerShown: false }}/>
     </Stack.Navigator>
   );
 }

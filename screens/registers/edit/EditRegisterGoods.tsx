@@ -1,19 +1,25 @@
 import * as React from 'react';
 import { View, Text, ScrollView, TextInput } from 'react-native';
 import { Button, Card, Dialog } from '@rneui/themed';
-import Header from '../components/Header';
+import { useNavigation, useRoute  } from '@react-navigation/native';
+import Header from '../../components/Header';
 import {Picker} from '@react-native-picker/picker';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DatePicker from 'react-native-date-picker';
-import { getDBConnection } from '../db/db-connection';
+import { getDBConnection } from '../../db/db-connection';
 
-export function RegisterGoods() {
-    
+type RouteParams = {
+  id: number;
+};
+
+export function EditRegisterGoods() {
+    const navigation = useNavigation();
     const [bem, setBem] = useState("");
     const [titulo, setTitulo] = useState("");
     const [valor, setValor] = useState("");
     const [descricao, setDescricao] = useState("");
     const [date, setDate] = useState(new Date());
+    const [atualizado, setAtualizado] = useState(0);
 
     const [visivel, setVisivel] = useState(false);
     const [tituloDialog, setTituloDialog] = useState("");
@@ -22,6 +28,17 @@ export function RegisterGoods() {
     const mudaDialog = () => {
         setVisivel(!visivel);
     };
+
+    const verificaAtualizado = () => {
+        if (atualizado === 1) {
+            navigation.goBack();
+        } else {
+            mudaDialog();
+        }
+    };
+
+    const route = useRoute();
+    const { id } = route.params as RouteParams;
 
     const formatCurrency = (text: any) => {
         let num = text.replace(/\D/g, "");
@@ -35,8 +52,35 @@ export function RegisterGoods() {
         setValor(formatCurrency(text));
     };
 
-    const salvarBem = async () => {
-                
+    useEffect(() => {
+        const getResult = async () => {
+            const db = await getDBConnection();
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT * FROM bens WHERE id = ?',
+                    [id],
+                    (tx, results) => {
+                    if (results.rows.length > 0) {
+                        setBem(results.rows.item(0).tipo);
+                        setTitulo(results.rows.item(0).titulo);
+                        setValor(formatCurrency((results.rows.item(0).valor).toString()));
+                        setDescricao(results.rows.item(0).descricao);
+                        setDate(new Date(results.rows.item(0).data_ocorrencia));
+                    }
+                    },
+                    (tx, error) => {
+                        console.error('Erro ao acessar o banco de dados:', error);
+                    }
+                );
+            });
+        }
+        
+        getResult();
+
+    }, [id]);
+
+    const atualizarBem = async () => {
+                                
         if (bem == "") {
             setTituloDialog("Campo Tipo de Bem");
             setTextoDialog("Escolha uma das opções do campo tipo.");
@@ -45,22 +89,22 @@ export function RegisterGoods() {
         }
 
         if (titulo == "") {
-            setTituloDialog("Campo Título");
-            setTextoDialog("Escolha uma das opções do campo tipo.");
+            setTituloDialog("Campo Título do Bem");
+            setTextoDialog("Escreva um título para este bem.");
             mudaDialog();
             return;
         }
 
         if (valor == "") {
             setTituloDialog("Campo Valor");
-            setTextoDialog("Você esqueceu de inserir um valor para está despesa.");
+            setTextoDialog("Você esqueceu de inserir um valor para este bem.");
             mudaDialog();
             return;
         }
 
         if (descricao == "") {
             setTituloDialog("Campo Descrição");
-            setTextoDialog("Insira uma descrição para está despesa.");
+            setTextoDialog("Insira uma descrição para este bem.");
             mudaDialog();
             return;
         }
@@ -70,31 +114,25 @@ export function RegisterGoods() {
         try {
             db.transaction((tx) => {
                 tx.executeSql(
-                    'INSERT INTO bens (tipo, titulo, valor, descricao, ano, mes, dia, data_ocorrencia, data_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [
+                    'UPDATE bens SET tipo = ?, titulo = ?, valor = ?, descricao = ?, data_ocorrencia = ? WHERE id=?',
+                    [ 
                         bem,
                         titulo,
-                        parseFloat(valor.replace(",", ".")),
+                        valor,
                         descricao,
-                        date.getFullYear(),
-                        date.getMonth()+1,
-                        date.getDate(),
                         `${date.getFullYear()}-${(date.getMonth() + 1)
                         .toString()
                         .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`,
-                        new Date().toString()
+                        id
                     ],
                     (tx, results) => {
                     if (results.rowsAffected > 0) {
-                        setTituloDialog("Registro de Bem");
-                        setTextoDialog("Registro efetuado com sucesso!");
-                        setBem("");
-                        setTitulo("");
-                        setValor("");
-                        setDescricao("");
+                        setTituloDialog("Atualização de Bem");
+                        setTextoDialog("Atualização efetuada com sucesso!");
+                        setAtualizado(1);
                     } else {
-                        setTituloDialog("Falha no Registro");
-                        setTextoDialog("Registro não pôde ser efetuado no momento!");
+                        setTituloDialog("Falha na Atualização");
+                        setTextoDialog("Atualização não pôde ser efetuado no momento!");
                     }
                     },
                     (tx, error) => {
@@ -109,6 +147,7 @@ export function RegisterGoods() {
         }
 
         mudaDialog();
+
     }
 
     return (
@@ -119,11 +158,11 @@ export function RegisterGoods() {
                 <View style={{ flexDirection: 'column', gap: 10, justifyContent: 'space-between'}}> 
                     
                     <Card containerStyle={{ marginHorizontal: 0 }}>
-                        <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f3762', fontSize: 18 }}>CADASTRAR BEM</Text>
+                        <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f3762', fontSize: 18 }}>ATUALIZAR BEM</Text>
                         <Card.Divider />
                         <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-start'}}>
                             <Text style={{ fontSize: 16 }}>
-                                Nesta tela é possível cadastrar todos os seus bens, móveis (ex: veículo) ou imóveis (ex: apartamento).
+                                Nesta tela é possível atualizar o registro do seu bem caso tenha cometido algum engano.
                             </Text>
                         </View>
                     </Card>
@@ -196,7 +235,13 @@ export function RegisterGoods() {
                         style={{alignSelf: 'center', marginTop: 0}}
                     />
 
-                    <Button size="lg" onPress={salvarBem}> Salvar </Button>
+                    <Button 
+                        size="lg"
+                        buttonStyle={{ backgroundColor: '#9400d3' }}
+                        onPress={atualizarBem}
+                    > 
+                        Atualizar registro
+                    </Button>
 
                     <Dialog
                         isVisible={visivel}
@@ -205,11 +250,11 @@ export function RegisterGoods() {
                         <Dialog.Title title={tituloDialog}/>
                         <Text>{textoDialog}</Text>
                         <Dialog.Actions>
-                            <Dialog.Button title="OK" onPress={mudaDialog}/>
+                            <Dialog.Button title="OK" onPress={verificaAtualizado}/>
                         </Dialog.Actions>
                     </Dialog>
-
-                    <Text>{'\n\n\n'}</Text> 
+                
+                    <Text>{'\n\n\n'}</Text>
                     
                 </View>
                 
