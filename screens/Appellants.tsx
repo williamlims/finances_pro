@@ -1,12 +1,13 @@
 import * as React from 'react';
 import { View, Text, ScrollView, TextInput, FlatList} from 'react-native';
-import { Button, Card, Input, Divider, ListItem } from '@rneui/themed';
+import { Button, Card, Input, Divider, Dialog } from '@rneui/themed';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from "@react-native-vector-icons/fontawesome";
 import Header from './components/Header';
 import {Picker} from '@react-native-picker/picker';
 import { useState } from 'react';
 import DatePicker from 'react-native-date-picker';
+import { getDBConnection } from './db/db-connection';
 
 export function Appellants() {
 
@@ -14,7 +15,103 @@ export function Appellants() {
     const ano = new Date().getFullYear();
     const [mes, setMes] = useState(0);
 
+    const [despesa, setDespesa] = useState(0);
+    const [ganho, setGanho] = useState(0);
+
+    const [visivel, setVisivel] = useState(false);
+    const [tituloDialog, setTituloDialog] = useState("");
+    const [textoDialog, setTextoDialog] = useState("");
+
+    const mudaDialog = () => {
+        setVisivel(!visivel);
+    };
+
+    const buscarDespesa = async (mes:number) => {
+        const db = await getDBConnection();
+         
+    }
+
+    const salvarDespesa = async (tipo:string, despesa:string, recorrente:number, valor:number, descricao:string, ano:number, mes:number, dia:number, data_ocorrencia:string, data_registro:string) => {
+        const db = await getDBConnection();
+        try {
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'INSERT INTO despesas (tipo, despesa, recorrente, valor, descricao, ano, mes, dia, data_ocorrencia, data_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [
+                        tipo,
+                        despesa,
+                        recorrente,
+                        valor,
+                        descricao,
+                        ano,
+                        mes,
+                        dia,
+                        data_ocorrencia,
+                        data_registro
+                    ],
+                    (tx, results) => {
+                        if (results.rowsAffected > 0) {
+                            setDespesa(1);
+                        } else {
+                            setDespesa(0);
+                        }
+                    },
+                    (tx, error) => {
+                        setTituloDialog("Erro");
+                        setTextoDialog(`Houve um erro: ${error.message || JSON.stringify(error)}`);
+                        mudaDialog();
+                    }
+                );
+            });
+        } catch (err: any) {
+            setTituloDialog("Erro");
+            setTextoDialog(`Houve um erro: ${err.message || JSON.stringify(err)}`);
+            mudaDialog();
+        }       
+    }
+
+    const salvarGanho = async (tipo:string, despesa:string, recorrente:number, valor:number, descricao:string, ano:number, mes:number, dia:number, data_ocorrencia:string, data_registro:string) => {
+        const db = await getDBConnection();
+        try {
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'INSERT INTO ganhos (tipo, recorrente, valor, descricao, ano, mes, dia, data_ocorrencia, data_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [
+                        tipo,
+                        recorrente,
+                        valor,
+                        descricao,
+                        ano,
+                        mes,
+                        dia,
+                        data_ocorrencia,
+                        data_registro
+                    ],
+                    (tx, results) => {
+                        if (results.rowsAffected > 0) {
+                            setGanho(1);
+                        } else {
+                            setGanho(0);
+                        }
+                    },
+                    (tx, error) => {
+                        setTituloDialog("Erro");
+                        setTextoDialog(`Houve um erro: ${error.message || JSON.stringify(error)}`);
+                        mudaDialog();
+                    }
+                );
+            });
+        } catch (err: any) {
+            setTituloDialog("Erro");
+            setTextoDialog(`Houve um erro: ${err.message || JSON.stringify(err)}`);
+            mudaDialog();
+        }       
+    }
     
+
+    const gerarRecorrentes = async () => {
+
+    }
 
     return (
         <>
@@ -66,6 +163,17 @@ export function Appellants() {
                     > 
                         Gerar recorrentes
                     </Button>
+
+                    <Dialog
+                        isVisible={visivel}
+                        onBackdropPress={mudaDialog}
+                        >
+                        <Dialog.Title title={tituloDialog}/>
+                        <Text>{textoDialog}</Text>
+                        <Dialog.Actions>
+                            <Dialog.Button title="OK" onPress={mudaDialog}/>
+                        </Dialog.Actions>
+                    </Dialog>
 
                 </View>
 
