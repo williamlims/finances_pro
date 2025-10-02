@@ -118,7 +118,7 @@ export function EditRegisterGoods() {
                     [ 
                         bem,
                         titulo,
-                        valor,
+                        parseFloat(valor.replace(/\./g, "").replace(",", ".")),
                         descricao,
                         `${date.getFullYear()}-${(date.getMonth() + 1)
                         .toString()

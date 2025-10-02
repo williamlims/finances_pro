@@ -75,7 +75,7 @@ export function RegisterExpense() {
                         tipo,
                         despesa,
                         recorrente,
-                        parseFloat(valor.replace(",", ".")),
+                        parseFloat(valor.replace(/\./g, "").replace(",", ".")),
                         descricao,
                         date.getFullYear(),
                         date.getMonth()+1,

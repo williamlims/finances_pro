@@ -1,18 +1,112 @@
 import * as React from 'react';
 import { View, Text, StyleSheet, ScrollView  } from 'react-native';
 import { Button, Card } from '@rneui/themed';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { FontAwesome } from "@react-native-vector-icons/fontawesome";
+import { useState } from 'react';
 import HeaderHome from './components/HeaderHome';
+import { getDBConnection } from './db/db-connection';
 
 export function Home() {
     const navigation = useNavigation();
+    const [entrada, setEntrada] = useState(0);
+    const [saida, setSaida] = useState(0);
+    const [mesLabel, setMesLabel] = useState("");
+    const [mes, setMes] = useState(0);
+    const [ano, setAno] = useState(0)
+
+    useFocusEffect(() => {
+        const defineMesAno = () => {
+            const data = new Date();
+            const mes_temp = data.getMonth() + 1;
+            const ano_temp = data.getFullYear();
+            setMes(mes_temp);
+            setAno(ano_temp);
+            switch (mes_temp) {
+                case 1:
+                    setMesLabel("JANEIRO");
+                    break;
+                case 2:
+                    setMesLabel("FEVEREIRO");
+                    break;
+                case 3:
+                    setMesLabel("MARÇO");
+                    break;
+                case 4:
+                    setMesLabel("ABRIL");
+                    break;
+                case 5:
+                    setMesLabel("MAIO");
+                    break;
+                case 6:
+                    setMesLabel("JUNHO");
+                    break;
+                case 7:
+                    setMesLabel("JULHO");
+                    break;
+                case 8:
+                    setMesLabel("AGOSTO");
+                    break;
+                case 9:
+                    setMesLabel("SETEMBRO");
+                    break;
+                case 10:
+                    setMesLabel("OUTUBRO");
+                    break;
+                case 11:
+                    setMesLabel("NOVEMBRO");
+                    break;
+                case 12:
+                    setMesLabel("DEZEMBRO");
+                    break;
+                default:
+                    setMesLabel("ERROR");
+                    break;
+            }
+        }
+        const getEntradas = async () => {
+            const db = await getDBConnection();
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT SUM(valor) AS entradas FROM ganhos WHERE mes = ? AND ano = ?',
+                    [mes, ano],
+                    (tx, results) => {
+                        setEntrada(results.rows.item(0).entradas);
+                    },
+                    (tx, error) => {
+                        console.error('Erro ao acessar o banco de dados:', error);
+                    }
+                );
+            });
+        }
+
+        const getSaidas = async () => {
+            const db = await getDBConnection();
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT SUM(valor) AS saidas FROM despesas WHERE mes = ? AND ano = ?',
+                    [mes, ano],
+                    (tx, results) => {
+                        setSaida(results.rows.item(0).saidas);
+                    },
+                    (tx, error) => {
+                        console.error('Erro ao acessar o banco de dados:', error);
+                    }
+                );
+            });
+        }
+
+        defineMesAno();
+        getEntradas();
+        getSaidas();
+    });
+
     return (
         <>
             <HeaderHome title='Finanças Pro' />
             <ScrollView style={{ flex: 1, padding: 10}}>
                 <Card containerStyle={{ marginHorizontal: 5 }}>
-                    <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f3762', fontSize: 18 }}>RESUMO DO MÊS DE SETEMBRO</Text>
+                    <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f3762', fontSize: 18 }}>RESUMO DO MÊS DE {mesLabel}</Text>
                     <Card.Divider />
                     <View style={{ flexDirection: 'row', gap: 5, justifyContent: 'space-between'}}>
                         <Text>
@@ -21,13 +115,13 @@ export function Home() {
                             {new Intl.NumberFormat('pt-BR', {
                                 style: 'currency',
                                 currency: 'BRL'
-                            }).format(8500.00)}
+                            }).format(entrada)}
                         </Text>
                         <Text>Saídas:{' '}
                             {new Intl.NumberFormat('pt-BR', {
                                 style: 'currency',
                                 currency: 'BRL'
-                            }).format(1999.99)}{' '}
+                            }).format(saida)}{' '}
                             <FontAwesome name="arrow-down" color="red" />
                         </Text>
                     </View>
@@ -147,28 +241,28 @@ export function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, // ocupa a tela inteira
-    padding: 10,
-  },
-  row: {
-    flex: 1, // faz a linha ocupar o espaço todo
-    flexDirection: "row",
-  },
-  buttonContainer: {
-    flex: 1, // cada botão ocupa metade da linha
-    margin: 5,
-  },
-  button: {
-    flex: 1, // botão cresce dentro do espaço
-    borderRadius: 10,
-  },
-  content: {
-    alignItems: "center",
-  },
-  text: {
-    marginTop: 5,
-    color: "white",
-    fontWeight: "bold",
-  },
+    container: {
+        flex: 1,
+        padding: 10,
+    },
+    row: {
+        flex: 1,
+        flexDirection: "row",
+    },
+    buttonContainer: {
+        flex: 1,
+        margin: 5,
+    },
+    button: {
+        flex: 1,
+        borderRadius: 10,
+    },
+    content: {
+        alignItems: "center",
+    },
+    text: {
+        marginTop: 5,
+        color: "white",
+        fontWeight: "bold",
+    },
 });

@@ -74,7 +74,7 @@ export function RegisterGoods() {
                     [
                         bem,
                         titulo,
-                        parseFloat(valor.replace(",", ".")),
+                        parseFloat(valor.replace(/\./g, "").replace(",", ".")),
                         descricao,
                         date.getFullYear(),
                         date.getMonth()+1,

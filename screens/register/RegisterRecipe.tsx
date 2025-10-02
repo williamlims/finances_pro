@@ -67,7 +67,7 @@ export function RegisterRecipe() {
                     [
                         ganho,
                         recorrente,
-                        parseFloat(valor.replace(",", ".")),
+                        parseFloat(valor.replace(/\./g, "").replace(",", ".")),
                         descricao,
                         date.getFullYear(),
                         date.getMonth()+1,

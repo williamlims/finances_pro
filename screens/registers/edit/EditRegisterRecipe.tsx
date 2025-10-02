@@ -112,7 +112,7 @@ export function EditRegisterRecipe() {
                     [ 
                         ganho,
                         recorrente,
-                        valor,
+                        parseFloat(valor.replace(/\./g, "").replace(",", ".")),
                         descricao,
                         `${date.getFullYear()}-${(date.getMonth() + 1)
                         .toString()

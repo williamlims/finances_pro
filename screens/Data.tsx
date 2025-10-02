@@ -32,9 +32,48 @@ export function Data() {
         const { dirs } = RNFetchBlob.fs;
         const downloads = dirs.DownloadDir;
 
+        const formatBRL = (v:number) =>
+            new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+
+        const gastosMes = 8500.0;
+        const gastosAno = 45230.5;
+        const ganhosMes = 12500.0;
+        const ganhosAno = 120500.75;
+        const bensTotal = 180000.0;
+
+        const htmlContent = `
+            <html>
+                <head>
+                <meta charset="utf-8"/>
+                <style>
+                    body { font-family: Arial, sans-serif; padding:20px; }
+                    h1 { text-align:center; color:#0f3762; }
+                    table { width:100%; border-collapse:collapse; margin-top:20px; }
+                    th, td { border:1px solid #ddd; padding:10px; text-align:left; }
+                    th { background:#f5f5f5; }
+                    .valor { font-weight:bold; color:#111; }
+                </style>
+                </head>
+                <body>
+                    <h1>Relatório Financeiro</h1>
+                    <table>
+                        <tr><th>Descrição</th><th>Valor</th></tr>
+                        <tr><td>Gastos no mês atual</td><td class="valor">${formatBRL(gastosMes)}</td></tr>
+                        <tr><td>Gastos no ano</td><td class="valor">${formatBRL(gastosAno)}</td></tr>
+                        <tr><td>Ganhos no mês atual</td><td class="valor">${formatBRL(ganhosMes)}</td></tr>
+                        <tr><td>Ganhos no ano</td><td class="valor">${formatBRL(ganhosAno)}</td></tr>
+                        <tr><td>Valor total de bens</td><td class="valor">${formatBRL(bensTotal)}</td></tr>
+                    </table>
+                    <p style="margin-top:30px; font-size:12px; color:#555;">
+                        Gerado em ${new Date().toLocaleString('pt-BR')}
+                    </p>
+                </body>
+            </html>
+        `;
+
         let options = {
-            html: '<h1>PDF TEST 3</h1>',
-            fileName: 'relatorio2',
+            html: htmlContent,
+            fileName: 'relatorio',
             base64: true,
         };
 
@@ -46,7 +85,7 @@ export function Data() {
         //await RNFS.writeFile(path, results.base64!, 'base64');
 
         //await FileViewer.open(results.filePath, { showOpenWithDialog: true });
-        const downloadPath = `${RNFS.DownloadDirectoryPath}/relatorio2.pdf`;
+        const downloadPath = `${RNFS.DownloadDirectoryPath}/relatorio.pdf`;
 
         await RNFS.moveFile(results.filePath, downloadPath);
 
@@ -105,7 +144,6 @@ export function Data() {
                         <ActivityIndicator size="large" color="#a52a2a" style={{ marginTop: 40 }}/>
                     )}
 
-                    
                     <Dialog
                         isVisible={visible}
                         onBackdropPress={toggleDialog}
