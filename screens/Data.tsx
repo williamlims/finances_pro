@@ -80,28 +80,12 @@ export function Data() {
         let results = await generatePDF(options);
         console.log(results.filePath);
 
-        //const path = `${RNFS.DownloadDirectoryPath}/relatorio.pdf`;
-
-        //await RNFS.writeFile(path, results.base64!, 'base64');
-
-        //await FileViewer.open(results.filePath, { showOpenWithDialog: true });
         const downloadPath = `${RNFS.DownloadDirectoryPath}/relatorio.pdf`;
 
         await RNFS.moveFile(results.filePath, downloadPath);
 
         setLoading(false);
 
-        /*Alert.alert(
-            "Relatório Gerado",
-            "O relatório foi salvo em sua pasta de Downloads.",
-            [
-                { text: "Sair", style: "cancel" },
-                {
-                    text: "OK",
-                    onPress: () => {}
-                }
-            ]
-        );*/
         setVisible(!visible);
     }
 

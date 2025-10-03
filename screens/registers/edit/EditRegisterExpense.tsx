@@ -43,7 +43,9 @@ export function EditRegisterExpense() {
     const { id } = route.params as RouteParams;
 
     const formatCurrency = (text: any) => {
+        if (!text) return "";
         let num = text.replace(/\D/g, "");
+        if (!num) return "";
         let parsed = (parseInt(num, 10) / 100).toFixed(2);
         return parsed
         .replace(".", ",")
@@ -150,7 +152,7 @@ export function EditRegisterExpense() {
                         setTipo(results.rows.item(0).tipo);
                         setDespesa(results.rows.item(0).despesa);
                         setRecorrente(results.rows.item(0).recorrente);
-                        setValor(formatCurrency((results.rows.item(0).valor).toString()));
+                        setValor(formatCurrency((results.rows.item(0).valor).toFixed(2)));
                         setDescricao(results.rows.item(0).descricao);
                         setDate(new Date(results.rows.item(0).data_ocorrencia));
                     }
@@ -317,7 +319,7 @@ export function EditRegisterExpense() {
                     <TextInput
                         style={{height: 50, margin: 0, borderWidth: 0, padding: 10, backgroundColor: "#d4d6d8ff"}}
                         onChangeText={handleChange}
-                        value={valor}
+                        value={valor.toString()}
                         placeholder="0,00"
                         keyboardType="numeric"
                     />

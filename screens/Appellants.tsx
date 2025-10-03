@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { View, Text, ScrollView, TextInput, FlatList} from 'react-native';
+import { View, Text, ScrollView, TextInput, FlatList, ActivityIndicator} from 'react-native';
 import { Button, Card, Input, Divider, Dialog } from '@rneui/themed';
 import { useNavigation } from '@react-navigation/native';
 import { FontAwesome } from "@react-native-vector-icons/fontawesome";
@@ -12,11 +12,8 @@ import { getDBConnection } from './db/db-connection';
 export function Appellants() {
 
     const navigation = useNavigation(); 
-    const ano = new Date().getFullYear();
+    const [loading, setLoading] = useState(false);
     const [mes, setMes] = useState(0);
-
-    const [despesa, setDespesa] = useState(0);
-    const [ganho, setGanho] = useState(0);
 
     const [visivel, setVisivel] = useState(false);
     const [tituloDialog, setTituloDialog] = useState("");
@@ -26,91 +23,128 @@ export function Appellants() {
         setVisivel(!visivel);
     };
 
-    const buscarDespesa = async (mes:number) => {
+    const getDespesasByMes = async (mesDespesas: number) => {
         const db = await getDBConnection();
-         
-    }
-
-    const salvarDespesa = async (tipo:string, despesa:string, recorrente:number, valor:number, descricao:string, ano:number, mes:number, dia:number, data_ocorrencia:string, data_registro:string) => {
-        const db = await getDBConnection();
-        try {
+        return new Promise<any[]>((resolve, reject) => {
             db.transaction((tx) => {
                 tx.executeSql(
-                    'INSERT INTO despesas (tipo, despesa, recorrente, valor, descricao, ano, mes, dia, data_ocorrencia, data_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [
-                        tipo,
-                        despesa,
-                        recorrente,
-                        valor,
-                        descricao,
-                        ano,
-                        mes,
-                        dia,
-                        data_ocorrencia,
-                        data_registro
-                    ],
-                    (tx, results) => {
-                        if (results.rowsAffected > 0) {
-                            setDespesa(1);
-                        } else {
-                            setDespesa(0);
+                    "SELECT * FROM despesas WHERE mes = ? AND ano = ? AND recorrente = ?",
+                    [mesDespesas-1, new Date().getFullYear(), 1],
+                    (_, results) => {
+                        let rows = results.rows;
+                        let data: any[] = [];
+                        for (let i = 0; i < rows.length; i++) {
+                            data.push(rows.item(i));
                         }
+                        resolve(data);
                     },
-                    (tx, error) => {
-                        setTituloDialog("Erro");
-                        setTextoDialog(`Houve um erro: ${error.message || JSON.stringify(error)}`);
-                        mudaDialog();
+                    (_, error) => {
+                        reject(error);
+                        return true;
                     }
                 );
             });
-        } catch (err: any) {
-            setTituloDialog("Erro");
-            setTextoDialog(`Houve um erro: ${err.message || JSON.stringify(err)}`);
-            mudaDialog();
-        }       
-    }
+        });
+    };
 
-    const salvarGanho = async (tipo:string, despesa:string, recorrente:number, valor:number, descricao:string, ano:number, mes:number, dia:number, data_ocorrencia:string, data_registro:string) => {
+    const getGanhosByMes = async (mesGanhos: number) => {
         const db = await getDBConnection();
-        try {
+        return new Promise<any[]>((resolve, reject) => {
             db.transaction((tx) => {
                 tx.executeSql(
-                    'INSERT INTO ganhos (tipo, recorrente, valor, descricao, ano, mes, dia, data_ocorrencia, data_registro) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                    [
-                        tipo,
-                        recorrente,
-                        valor,
-                        descricao,
-                        ano,
-                        mes,
-                        dia,
-                        data_ocorrencia,
-                        data_registro
-                    ],
-                    (tx, results) => {
-                        if (results.rowsAffected > 0) {
-                            setGanho(1);
-                        } else {
-                            setGanho(0);
+                    "SELECT * FROM ganhos WHERE mes = ? AND ano = ? AND recorrente = ?",
+                    [mesGanhos-1, new Date().getFullYear(), 1],
+                    (_, results) => {
+                        let rows = results.rows;
+                        let data: any[] = [];
+                        for (let i = 0; i < rows.length; i++) {
+                            data.push(rows.item(i));
                         }
+                        resolve(data);
                     },
-                    (tx, error) => {
-                        setTituloDialog("Erro");
-                        setTextoDialog(`Houve um erro: ${error.message || JSON.stringify(error)}`);
-                        mudaDialog();
+                    (_, error) => {
+                        reject(error);
+                        return true;
                     }
                 );
             });
-        } catch (err: any) {
-            setTituloDialog("Erro");
-            setTextoDialog(`Houve um erro: ${err.message || JSON.stringify(err)}`);
-            mudaDialog();
-        }       
-    }
+        });
+    };
+
+    const clonarDespesasParaMesAtual = async (mesDespesas: number) => {
+        const despesasAntigas = await getDespesasByMes(mesDespesas);
+        const db = await getDBConnection();
+
+        const mesAtual = new Date().getMonth() + 1;
+        const anoAtual = new Date().getFullYear();
+        const diaAtual = new Date().getDate();
+        const dataRegistro = new Date().toISOString();
+
+        db.transaction((tx) => {
+            despesasAntigas.forEach((d) => {
+                tx.executeSql(
+                    `INSERT INTO despesas 
+                    (tipo, despesa, recorrente, valor, descricao, ano, mes, dia, data_ocorrencia, data_registro)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        d.tipo,
+                        d.despesa,
+                        d.recorrente,
+                        d.valor,
+                        d.descricao,
+                        anoAtual,
+                        mesAtual,
+                        diaAtual,
+                        `${anoAtual}-${mesAtual.toString()
+                        .padStart(2, '0')}-${diaAtual.toString().padStart(2, '0')}`,
+                        dataRegistro
+                    ]
+                );
+            });
+        });
+    };
+
+    const clonarGanhosParaMesAtual = async (mesFiltro: number) => {
+        const ganhosAntigos = await getGanhosByMes(mesFiltro);
+        const db = await getDBConnection();
+
+        const mesAtual = new Date().getMonth() + 1;
+        const anoAtual = new Date().getFullYear();
+        const diaAtual = new Date().getDate();
+        const dataRegistro = new Date().toISOString();
+
+        db.transaction((tx) => {
+            ganhosAntigos.forEach((g) => {
+                tx.executeSql(
+                    `INSERT INTO ganhos 
+                    (tipo, recorrente, valor, descricao, ano, mes, dia, data_ocorrencia, data_registro)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [
+                        g.tipo,
+                        g.recorrente,
+                        g.valor,
+                        g.descricao,
+                        anoAtual,
+                        mesAtual,
+                        diaAtual,
+                        `${anoAtual}-${mesAtual.toString()
+                        .padStart(2, '0')}-${diaAtual.toString().padStart(2, '0')}`,
+                        dataRegistro
+                    ]
+                );
+            });
+        });
+    };
     
 
     const gerarRecorrentes = async () => {
-
+        setLoading(true);
+        clonarDespesasParaMesAtual(new Date().getMonth()+1);
+        clonarGanhosParaMesAtual(new Date().getMonth()+1);
+        setTituloDialog("Recorrentes Gerados");
+        setTextoDialog("Os registros recorrentes foram gerados com sucesso!")
+        setLoading(false);
+        mudaDialog();
     }
 
     return (
@@ -131,12 +165,13 @@ export function Appellants() {
                     </Card>
 
                     <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 5, textAlign: 'left' }}>
-                        Escolha o mês
+                        Mês atual
                     </Text>
 
                     <Picker
                         style={{backgroundColor: '#d4d6d8ff', height: 50}}
-                        selectedValue={mes}
+                        selectedValue={new Date().getMonth()+1}
+                        enabled={false}
                         onValueChange={(itemValue, itemIndex) =>
                             setMes(itemValue)
                         }>
@@ -160,9 +195,14 @@ export function Appellants() {
                     <Button 
                         size="lg"
                         buttonStyle={{ backgroundColor: '#191970' }}
+                        onPress={gerarRecorrentes}
                     > 
                         Gerar recorrentes
                     </Button>
+
+                    {loading && (
+                        <ActivityIndicator size="large" color="#a52a2a" style={{ marginTop: 40 }}/>
+                    )}
 
                     <Dialog
                         isVisible={visivel}

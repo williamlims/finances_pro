@@ -40,31 +40,31 @@ export function Dashboard() {
     const data = [
     {
       name: maioresDespesas[0]?.tipo || "",
-      population: (maioresDespesas[0]?.total || 0)/1000,
+      population: parseFloat(((maioresDespesas[0]?.total || 0)/1000).toPrecision(3)),
       color: "rgba(173, 20, 0, 1)",
       legendFontColor: "#ffffffff",
-      legendFontSize: 15
+      legendFontSize: 14
     },
     {
       name: maioresDespesas[1]?.tipo || "",
-      population: (maioresDespesas[1]?.total || 0)/1000,
+      population: parseFloat(((maioresDespesas[1]?.total || 0)/1000).toPrecision(3)),
       color: "rgb(204, 216, 37)",
       legendFontColor: "#ffffffff",
-      legendFontSize: 15
+      legendFontSize: 14
     },
     {
       name: maioresDespesas[2]?.tipo || "",
-      population: (maioresDespesas[2]?.total || 0)/1000,
+      population: parseFloat(((maioresDespesas[2]?.total || 0)/1000).toPrecision(3)),
       color: "rgba(238, 107, 46, 1)",
       legendFontColor: "#ffffffff",
-      legendFontSize: 15
+      legendFontSize: 14
     },
     {
       name: maioresDespesas[3]?.tipo || "",
-      population: (maioresDespesas[3]?.total || 0)/1000,
+      population: parseFloat(((maioresDespesas[3]?.total || 0)/1000).toPrecision(3)),
       color: "rgba(253, 201, 123, 1)",
       legendFontColor: "#ffffffff",
-      legendFontSize: 15
+      legendFontSize: 14
     }
   ];
 
@@ -378,7 +378,7 @@ export function Dashboard() {
                   }}
                   accessor={"population"}
                   backgroundColor={"#323335ff"}
-                  paddingLeft={"15"}
+                  paddingLeft={"5"}
                   center={[10, 10]}
                   absolute
                 />
