@@ -58,7 +58,6 @@ export function Index() {
                         </View>
                     </Button>
 
-
                 </View>
        
             </ScrollView>

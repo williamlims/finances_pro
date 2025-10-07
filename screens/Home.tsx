@@ -1,19 +1,51 @@
 import * as React from 'react';
 import { View, Text, StyleSheet, ScrollView  } from 'react-native';
-import { Button, Card } from '@rneui/themed';
+import { Button, Card, Dialog } from '@rneui/themed';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { FontAwesome } from "@react-native-vector-icons/fontawesome";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HeaderHome from './components/HeaderHome';
 import { getDBConnection } from './db/db-connection';
 
 export function Home() {
+
     const navigation = useNavigation();
     const [entrada, setEntrada] = useState(0);
     const [saida, setSaida] = useState(0);
+    const [entradaAnual, setEntradaAnual] = useState(0);
+    const [saidaAnual, setSaidaAnual] = useState(0);
     const [mesLabel, setMesLabel] = useState("");
     const [mes, setMes] = useState(0);
-    const [ano, setAno] = useState(0)
+    const [ano, setAno] = useState(0);
+    const [limiteMensal, setLimiteMensal] = useState(0);
+    const [limiteAnual, setLimiteAnual] = useState(0);
+    const [visivel, setVisivel] = useState(false);
+    const [tituloDialog, setTituloDialog] = useState("");
+    const [textoDialog, setTextoDialog] = useState("");
+
+    const mudaDialog = () => {
+        setVisivel(!visivel);
+    };
+
+    const verificaLimites = () => {
+        const percent_atual = entrada!==0 ? (saida/entrada)*100 : 0;
+        const percent_atual_anual = entradaAnual!==0 ? (saidaAnual/entradaAnual)*100 : 0;
+        if (percent_atual > limiteMensal && percent_atual_anual > limiteAnual) {
+            setTituloDialog("Alerta de Limite");
+            setTextoDialog("Atenção!! Você atingiu os limites mensal e anual.");
+            mudaDialog();
+        }
+        if (percent_atual > limiteMensal && percent_atual_anual <= limiteAnual) {
+            setTituloDialog("Alerta de Limite");
+            setTextoDialog("Atenção!! Você atingiu o limite mensal.");
+            mudaDialog();
+        }
+        if (percent_atual <= limiteMensal && percent_atual_anual > limiteAnual) {
+            setTituloDialog("Alerta de Limite");
+            setTextoDialog("Atenção!! Você atingiu o limite anual.");
+            mudaDialog();
+        }
+    }
 
     useFocusEffect(() => {
         const defineMesAno = () => {
@@ -64,6 +96,7 @@ export function Home() {
                     break;
             }
         }
+
         const getEntradas = async () => {
             const db = await getDBConnection();
             db.transaction((tx) => {
@@ -72,6 +105,22 @@ export function Home() {
                     [mes, ano],
                     (tx, results) => {
                         setEntrada(results.rows.item(0).entradas);
+                    },
+                    (tx, error) => {
+                        console.error('Erro ao acessar o banco de dados:', error);
+                    }
+                );
+            });
+        }
+
+        const getEntradasAnual = async () => {
+            const db = await getDBConnection();
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT SUM(valor) AS entradas FROM ganhos WHERE ano = ?',
+                    [ano],
+                    (tx, results) => {
+                        setEntradaAnual(results.rows.item(0).entradas);
                     },
                     (tx, error) => {
                         console.error('Erro ao acessar o banco de dados:', error);
@@ -96,10 +145,50 @@ export function Home() {
             });
         }
 
+        const getSaidasAnual = async () => {
+            const db = await getDBConnection();
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT SUM(valor) AS saidas FROM despesas WHERE ano = ?',
+                    [ano],
+                    (tx, results) => {
+                        setSaidaAnual(results.rows.item(0).saidas);
+                    },
+                    (tx, error) => {
+                        console.error('Erro ao acessar o banco de dados:', error);
+                    }
+                );
+            });
+        }
+
+        const getLimites = async () => {
+            const db = await getDBConnection();
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT * FROM limites',
+                    [],
+                    (tx, results) => {
+                        setLimiteMensal(results.rows.item(0).mensal);
+                        setLimiteAnual(results.rows.item(0).anual);
+                    },
+                    (tx, error) => {
+                        console.error('Erro ao acessar o banco de dados:', error);
+                    }
+                );
+            });
+        }
+    
         defineMesAno();
+        getLimites();
         getEntradas();
+        getEntradasAnual();
+        getSaidasAnual();
         getSaidas();
     });
+
+    useEffect(() => {
+        verificaLimites();
+    }, [entrada, saida, entradaAnual, saidaAnual, limiteMensal, limiteAnual]);
 
     return (
         <>
@@ -232,6 +321,16 @@ export function Home() {
                         </View>
                     </Button>
                     <View style={{ flex: 1, maxWidth: 200, margin: 5, }}/>
+                    <Dialog
+                        isVisible={visivel}
+                        onBackdropPress={mudaDialog}
+                        >
+                        <Dialog.Title title={tituloDialog}/>
+                        <Text>{textoDialog}</Text>
+                        <Dialog.Actions>
+                            <Dialog.Button title="OK" onPress={mudaDialog}/>
+                        </Dialog.Actions>
+                    </Dialog>
                 </View>
                 <Text>{"\n\n\n\n"}</Text>
                 

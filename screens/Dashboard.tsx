@@ -17,7 +17,6 @@ type Despesa = {
 };
 
 export function Dashboard() {
-    const navigation = useNavigation();
     const screenWidth = Dimensions.get("window").width - 20;
     const [mesAtual, setMesAtual] = useState(new Date().getMonth()+1)
 

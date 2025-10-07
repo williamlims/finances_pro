@@ -1,12 +1,10 @@
 import * as React from 'react';
-import { View, Text, ScrollView, TextInput, FlatList, ActivityIndicator} from 'react-native';
-import { Button, Card, Input, Divider, Dialog } from '@rneui/themed';
+import { View, Text, ScrollView, ActivityIndicator} from 'react-native';
+import { Button, Card, Divider, Dialog } from '@rneui/themed';
 import { useNavigation } from '@react-navigation/native';
-import { FontAwesome } from "@react-native-vector-icons/fontawesome";
 import Header from './components/Header';
 import {Picker} from '@react-native-picker/picker';
-import { useState } from 'react';
-import DatePicker from 'react-native-date-picker';
+import { useState, useEffect } from 'react';
 import { getDBConnection } from './db/db-connection';
 
 export function Appellants() {
@@ -15,12 +13,49 @@ export function Appellants() {
     const [loading, setLoading] = useState(false);
     const [mes, setMes] = useState(0);
 
+    const [habilitado, setHabilitado] = useState(false);
     const [visivel, setVisivel] = useState(false);
     const [tituloDialog, setTituloDialog] = useState("");
     const [textoDialog, setTextoDialog] = useState("");
 
     const mudaDialog = () => {
         setVisivel(!visivel);
+    };
+
+    const checkRecorrentesMesAtual = async () => {
+        const db = await getDBConnection();
+        const mesAtual = new Date().getMonth() + 1;
+        const anoAtual = new Date().getFullYear();
+
+        return new Promise<boolean>((resolve, reject) => {
+            db.transaction((tx) => {
+                tx.executeSql(
+                    'SELECT COUNT(*) AS total FROM ganhos WHERE mes = ? AND ano = ? AND recorrente = ?',
+                    [mesAtual, anoAtual, 1],
+                    (_, results) => {
+                        const ganhosCount = results.rows.item(0).total;
+                        tx.executeSql(
+                            'SELECT COUNT(*) AS total FROM despesas WHERE mes = ? AND ano = ? AND recorrente = ?',
+                            [mesAtual, anoAtual, 1],
+                            (_, results) => {
+                                const despesasCount = results.rows.item(0).total;
+                                resolve(ganhosCount > 0 || despesasCount > 0);
+                            },
+                            (_, error) => {
+                                console.error('Erro ao verificar despesas:', error);
+                                reject(error);
+                                return true;
+                            }
+                        );
+                    },
+                    (_, error) => {
+                        console.error('Erro ao verificar ganhos:', error);
+                        reject(error);
+                        return true;
+                    }
+                );
+            });
+        });
     };
 
     const getDespesasByMes = async (mesDespesas: number) => {
@@ -136,7 +171,6 @@ export function Appellants() {
         });
     };
     
-
     const gerarRecorrentes = async () => {
         setLoading(true);
         clonarDespesasParaMesAtual(new Date().getMonth()+1);
@@ -147,6 +181,15 @@ export function Appellants() {
         mudaDialog();
     }
 
+    useEffect(() => {
+        const verificar = async () => {
+            const jaGerado = await checkRecorrentesMesAtual();
+            setHabilitado(jaGerado);
+        };
+
+        verificar();
+    }, []);
+    
     return (
         <>
             <Header title='Recorrentes' />
@@ -196,6 +239,7 @@ export function Appellants() {
                         size="lg"
                         buttonStyle={{ backgroundColor: '#191970' }}
                         onPress={gerarRecorrentes}
+                        disabled={habilitado}
                     > 
                         Gerar recorrentes
                     </Button>

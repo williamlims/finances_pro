@@ -23,6 +23,7 @@ import { EditRegisterRecipe } from './screens/registers/edit/EditRegisterRecipe'
 import { Appellants } from './screens/Appellants';
 import { Data } from './screens/Data';
 import { About } from './screens/About';
+import { PDF } from './screens/PDF';
 
 const Stack = createNativeStackNavigator();
 
@@ -76,6 +77,7 @@ function RootStackNav() {
         <Stack.Screen name="Appellants" component={Appellants} options={{ headerShown: false }}/>
         <Stack.Screen name="Data" component={Data} options={{ headerShown: false }}/>
         <Stack.Screen name="About" component={About} options={{ headerShown: false }}/>
+        <Stack.Screen name="PDF" component={PDF} options={{ headerShown: false }}/>
 
     </Stack.Navigator>
   );

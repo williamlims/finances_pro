@@ -68,7 +68,6 @@ export function ExpenseRecords() {
                     <Divider />
 
                     <>
-                    
                         {despesas.map((item) => (
                             <ListItem.Swipeable
                                 onPress={() => navigation.navigate('EditRegisterExpense', { id: item.id })}

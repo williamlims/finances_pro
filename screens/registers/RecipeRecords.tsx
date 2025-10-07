@@ -68,7 +68,6 @@ export function RecipeRecords() {
                     <Divider />
 
                     <>
-
                         {ganhos.map((item) => (
                             <ListItem.Swipeable
                                 onPress={() => navigation.navigate('EditRegisterRecipe', { id: item.id })}
