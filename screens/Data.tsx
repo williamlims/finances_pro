@@ -132,7 +132,7 @@ export function Data() {
                     'SELECT SUM(valor) AS ganhos FROM ganhos WHERE mes = ? AND ano = ?',
                     [mes, ano],
                     (tx, results) => {
-                        setGastosMes(results.rows.item(0).ganhos);
+                        setGanhosMes(results.rows.item(0).ganhos);
                     },
                     (tx, error) => {
                         console.error('Erro ao acessar o banco de dados:', error);
@@ -148,7 +148,7 @@ export function Data() {
                     'SELECT SUM(valor) AS ganhos FROM ganhos WHERE ano = ?',
                     [ano],
                     (tx, results) => {
-                        setGastosAno(results.rows.item(0).ganhos);
+                        setGanhosAno(results.rows.item(0).ganhos);
                     },
                     (tx, error) => {
                         console.error('Erro ao acessar o banco de dados:', error);

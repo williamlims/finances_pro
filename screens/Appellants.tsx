@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { View, Text, ScrollView, ActivityIndicator} from 'react-native';
 import { Button, Card, Divider, Dialog } from '@rneui/themed';
-import { useNavigation } from '@react-navigation/native';
 import Header from './components/Header';
 import {Picker} from '@react-native-picker/picker';
 import { useState, useEffect } from 'react';
@@ -9,9 +8,8 @@ import { getDBConnection } from './db/db-connection';
 
 export function Appellants() {
 
-    const navigation = useNavigation(); 
     const [loading, setLoading] = useState(false);
-    const [mes, setMes] = useState(0);
+    const [mes, setMes] = useState(new Date().getMonth()+1);
 
     const [habilitado, setHabilitado] = useState(false);
     const [visivel, setVisivel] = useState(false);
@@ -212,8 +210,8 @@ export function Appellants() {
                     </Text>
 
                     <Picker
-                        style={{backgroundColor: '#d4d6d8ff', height: 50}}
-                        selectedValue={new Date().getMonth()+1}
+                        style={{backgroundColor: '#d4d6d8ff', height: 50, color: '#999'}}
+                        selectedValue={mes}
                         enabled={false}
                         onValueChange={(itemValue, itemIndex) =>
                             setMes(itemValue)

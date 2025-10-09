@@ -133,7 +133,7 @@ export function RegisterGoods() {
                     </Text>
 
                     <Picker
-                        style={{backgroundColor: '#d4d6d8ff', height: 50}}
+                        style={{backgroundColor: '#d4d6d8ff', height: 50, color: '#000'}}
                         selectedValue={bem}
                         onValueChange={(itemValue, itemIndex) =>
                             setBem(itemValue)
@@ -154,7 +154,8 @@ export function RegisterGoods() {
                     </Text>
 
                     <TextInput
-                        style={{height: 50, margin: 0, borderWidth: 0, padding: 10, backgroundColor: "#d4d6d8ff"}}
+                        style={{height: 50, margin: 0, borderWidth: 0, padding: 10, backgroundColor: "#d4d6d8ff", color: '#000'}}
+                        placeholderTextColor={'#999'}
                         onChangeText={setTitulo}
                         value={titulo}
                         placeholder="Escreva o título"
@@ -165,10 +166,11 @@ export function RegisterGoods() {
                     </Text>
 
                     <TextInput
-                        style={{height: 50, margin: 0, borderWidth: 0, padding: 10, backgroundColor: "#d4d6d8ff"}}
+                        style={{height: 50, margin: 0, borderWidth: 0, padding: 10, backgroundColor: "#d4d6d8ff", color: '#000'}}
                         onChangeText={handleChange}
                         value={valor}
                         placeholder="0,00"
+                        placeholderTextColor={'#999'}
                         keyboardType="numeric"
                     />
 
@@ -177,7 +179,7 @@ export function RegisterGoods() {
                     </Text>
 
                     <TextInput
-                        style={{height: 100, margin: 0, borderWidth: 0, paddingLeft: 10, paddingEnd: 10, paddingTop: 10, backgroundColor: "#d4d6d8ff", textAlignVertical: "top"}}
+                        style={{height: 100, margin: 0, borderWidth: 0, paddingLeft: 10, paddingEnd: 10, paddingTop: 10, backgroundColor: "#d4d6d8ff", textAlignVertical: "top", color: '#000'}}
                         onChangeText={setDescricao}
                         value={descricao}
                         multiline
@@ -189,6 +191,7 @@ export function RegisterGoods() {
                     </Text>
 
                     <DatePicker 
+                        theme="light"
                         date={date} 
                         onDateChange={setDate} 
                         mode="date" 

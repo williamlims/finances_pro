@@ -1,14 +1,9 @@
 import * as React from 'react';
-import { View, Text, ScrollView, Dimensions } from 'react-native';
+import { View, Text, ScrollView, Dimensions, ActivityIndicator, StyleSheet } from 'react-native';
 import { Card, Divider } from '@rneui/themed';
-import { useNavigation } from '@react-navigation/native';
 import { useState, useEffect } from 'react';
 import Header from './components/Header';
-import {
-  LineChart,
-  BarChart,
-  PieChart
-} from "react-native-chart-kit";
+import { LineChart, BarChart, PieChart } from "react-native-chart-kit";
 import { getDBConnection } from './db/db-connection';
 
 type Despesa = {
@@ -17,377 +12,238 @@ type Despesa = {
 };
 
 export function Dashboard() {
-    const screenWidth = Dimensions.get("window").width - 20;
-    const [mesAtual, setMesAtual] = useState(new Date().getMonth()+1)
+  const screenWidth = Dimensions.get("window").width - 20;
+  const [mesAtual] = useState(new Date().getMonth() + 1);
 
-    const [mesGUltimo, setMesGUltimo] = useState(0);
-    const [mesGTerceiro, setMesGTerceiro] = useState(0);
-    const [mesGSegundo, setMesGSegundo] = useState(0);
-    const [mesGPrimeiro, setMesGPrimeiro] = useState(0);
+  const [ganhos, setGanhos] = useState<number[]>([0,0,0,0]);
+  const [despesas, setDespesas] = useState<number[]>([0,0,0,0]);
 
-    const [mesDUltimo, setMesDUltimo] = useState(0);
-    const [mesDTerceiro, setMesDTerceiro] = useState(0);
-    const [mesDSegundo, setMesDSegundo] = useState(0);
-    const [mesDPrimeiro, setMesDPrimeiro] = useState(0);
+  const [maioresDespesas, setMaioresDespesas] = useState<Despesa[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
-    const [maioresDespesas, setMaioresDespesas] = useState<Despesa[]>([]);
+  const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
-    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const getMesLabel = (offset: number) => {
+    const idx = (mesAtual - offset - 1 + 12) % 12;
+    return meses[idx].substring(0,3);
+  };
 
-    const widthAndHeight = 250
+  const getTotal = (db: any, table: string, mes: number): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      if (mes < 1 || mes > 12) return resolve(0);
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          `SELECT SUM(valor) AS total FROM ${table} WHERE mes = ? AND ano = ?`,
+          [mes, new Date().getFullYear()],
+          (_tx: any, results: any) => {
+            const raw = results.rows.item(0).total;
+            const n = Number(raw);
+            if (!isFinite(n) || Number.isNaN(n)) resolve(0);
+            else resolve(n);
+          },
+          (_tx: any, error: any) => {
+            console.error(`Erro SQL (${table}, mes ${mes}):`, error);
+            resolve(0);
+          }
+        );
+      });
+    });
+  };
 
-    const data = [
-    {
-      name: maioresDespesas[0]?.tipo || "",
-      population: parseFloat(((maioresDespesas[0]?.total || 0)/1000).toPrecision(3)),
-      color: "rgba(173, 20, 0, 1)",
-      legendFontColor: "#ffffffff",
-      legendFontSize: 14
-    },
-    {
-      name: maioresDespesas[1]?.tipo || "",
-      population: parseFloat(((maioresDespesas[1]?.total || 0)/1000).toPrecision(3)),
-      color: "rgb(204, 216, 37)",
-      legendFontColor: "#ffffffff",
-      legendFontSize: 14
-    },
-    {
-      name: maioresDespesas[2]?.tipo || "",
-      population: parseFloat(((maioresDespesas[2]?.total || 0)/1000).toPrecision(3)),
-      color: "rgba(238, 107, 46, 1)",
-      legendFontColor: "#ffffffff",
-      legendFontSize: 14
-    },
-    {
-      name: maioresDespesas[3]?.tipo || "",
-      population: parseFloat(((maioresDespesas[3]?.total || 0)/1000).toPrecision(3)),
-      color: "rgba(253, 201, 123, 1)",
-      legendFontColor: "#ffffffff",
-      legendFontSize: 14
-    }
-  ];
+  const getMaioresDespesasPromise = (db: any): Promise<Despesa[]> => {
+    return new Promise((resolve) => {
+      db.transaction((tx: any) => {
+        tx.executeSql(
+          `SELECT tipo, SUM(valor) AS total 
+           FROM despesas 
+           WHERE ano = ? 
+           GROUP BY tipo 
+           ORDER BY total DESC 
+           LIMIT 4`,
+          [new Date().getFullYear()],
+          (_tx: any, results: any) => {
+            const out: Despesa[] = [];
+            for (let i = 0; i < results.rows.length; i++) {
+              const r = results.rows.item(i);
+              out.push({ tipo: r.tipo, total: Number(r.total) || 0 });
+            }
+            resolve(out);
+          },
+          (_tx: any, error: any) => {
+            console.error("Erro ao buscar maiores despesas:", error);
+            resolve([]);
+          }
+        );
+      });
+    });
+  };
 
   useEffect(() => {
-    const getUltimoMesG = async () => {
+    let mounted = true;
+    const carregar = async () => {
+      setLoaded(false);
       const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            'SELECT SUM(valor) AS total FROM ganhos WHERE mes = ? AND ano = ?',
-            [mesAtual, new Date().getFullYear()],
-            (tx, results) => {
-              setMesGUltimo(results.rows.item(0).total);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    }
 
-    const getTerceiroMesG = async () => {
-      const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            'SELECT SUM(valor) AS total FROM ganhos WHERE mes = ? AND ano = ?',
-            [mesAtual-1, new Date().getFullYear()],
-            (tx, results) => {
-              setMesGTerceiro(results.rows.item(0).total);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    }
+      const mesesAlvo = [3,2,1,0].map(offset => ((mesAtual - offset - 1 + 12) % 12) + 1);
 
-    const getSegundoMesG = async () => {
-      const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            'SELECT SUM(valor) AS total FROM ganhos WHERE mes = ? AND ano = ?',
-            [mesAtual-2, new Date().getFullYear()],
-            (tx, results) => {
-              setMesGSegundo(results.rows.item(0).total);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    }
+      const ganhosPromises = mesesAlvo.map(m => getTotal(db, "ganhos", m));
+      const despesasPromises = mesesAlvo.map(m => getTotal(db, "despesas", m));
 
-    const getPrimeiroMesG = async () => {
-      const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            'SELECT SUM(valor) AS total FROM ganhos WHERE mes = ? AND ano = ?',
-            [mesAtual-3, new Date().getFullYear()],
-            (tx, results) => {
-              setMesGPrimeiro(results.rows.item(0).total);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    } 
+      const [ganhosRes, despesasRes, maioresRes] = await Promise.all([
+        Promise.all(ganhosPromises),
+        Promise.all(despesasPromises),
+        getMaioresDespesasPromise(db)
+      ]);
 
-    const getUltimoMesD = async () => {
-      const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            'SELECT SUM(valor) AS total FROM despesas WHERE mes = ? AND ano = ?',
-            [mesAtual, new Date().getFullYear()],
-            (tx, results) => {
-              setMesDUltimo(results.rows.item(0).total);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    }
+      if (!mounted) return;
+      setGanhos(ganhosRes.map(n => (isFinite(n) ? n : 0)));
+      setDespesas(despesasRes.map(n => (isFinite(n) ? n : 0)));
+      setMaioresDespesas(maioresRes);
+      setLoaded(true);
+    };
 
-    const getTerceiroMesD = async () => {
-      const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            'SELECT SUM(valor) AS total FROM despesas WHERE mes = ? AND ano = ?',
-            [mesAtual-1, new Date().getFullYear()],
-            (tx, results) => {
-              setMesDTerceiro(results.rows.item(0).total);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    }
+    carregar();
 
-    const getSegundoMesD = async () => {
-      const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            'SELECT SUM(valor) AS total FROM despesas WHERE mes = ? AND ano = ?',
-            [mesAtual-2, new Date().getFullYear()],
-            (tx, results) => {
-              setMesDSegundo(results.rows.item(0).total);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    }
+    return () => { mounted = false; };
+  }, [mesAtual]);
 
-    const getPrimeiroMesD = async () => {
-      const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            'SELECT SUM(valor) AS total FROM despesas WHERE mes = ? AND ano = ?',
-            [mesAtual-3, new Date().getFullYear()],
-            (tx, results) => {
-              setMesDPrimeiro(results.rows.item(0).total);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    } 
+  const ganhosData = ganhos.map(v => (v || 0) / 1000);
+  const despesasData = despesas.map(v => (v || 0) / 1000);
 
-    const getMaioresDespesas = async () => {
-      const db = await getDBConnection();
-        db.transaction((tx) => {
-          tx.executeSql(
-            `SELECT tipo, SUM(valor) AS total 
-            FROM despesas 
-            WHERE ano = ? 
-            GROUP BY tipo 
-            ORDER BY total DESC 
-            LIMIT 4`,
-            [new Date().getFullYear()],
-            (tx, results) => {
-              const maiores: Despesa[] = [];
-              for (let i = 0; i < results.rows.length; i++) {
-                maiores.push(results.rows.item(i));
-              }
-              setMaioresDespesas(maiores);
-            },
-            (tx, error) => {
-                console.error('Erro ao acessar o banco de dados:', error);
-            }
-          );
-      });        
-    } 
+  const pieData = maioresDespesas.slice(0,4).map((d,i) => ({
+    name: d?.tipo || `#${i+1}`,
+    population: Number(d?.total || 0) / 1000,
+    color: ["rgba(173,20,0,1)","rgb(204,216,37)","rgba(238,107,46,1)","rgba(253,201,123,1)"][i],
+    legendFontColor: "#fff",
+    legendFontSize: 14
+  }));
 
-    getUltimoMesG();
-    getTerceiroMesG();
-    getSegundoMesG();
-    getPrimeiroMesG();
-    getUltimoMesD();
-    getTerceiroMesD();
-    getSegundoMesD();
-    getPrimeiroMesD();
-    getMaioresDespesas();
-
-  }, []);
+  const pieTotal = pieData.reduce((s, p) => s + (p.population || 0), 0);
 
   return (
-      <>
-          <Header title='Dashboard' />
-          <ScrollView style={{ flex: 1, padding: 10}}>
-                                  
-              <View style={{ flexDirection: 'column', gap: 10, justifyContent: 'space-between'}}> 
-                  
-                  <Card containerStyle={{ marginHorizontal: 0 }}>
-                      <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f3762', fontSize: 18 }}>DASHBOARD FINANCEIRO</Text>
-                      <Card.Divider />
-                      <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-start'}}>
-                          <Text style={{ fontSize: 16 }}>
-                              Aqui você tem acesso ao seu dashboard para análise crítica e entender rapidamente como anda sua saúde financeira.
-                          </Text>
-                      </View>
-                  </Card>
+    <>
+      <Header title='Dashboard' />
+      <ScrollView style={{ flex: 1, padding: 10 }}>
+        <View style={{ flexDirection: 'column', gap: 10, justifyContent: 'space-between' }}>
+          <Card containerStyle={{ marginHorizontal: 0 }}>
+            <Text style={{ textAlign: 'center', fontWeight: 'bold', color: '#0f3762', fontSize: 18 }}>
+              DASHBOARD FINANCEIRO
+            </Text>
+            <Card.Divider />
+            <Text style={{ fontSize: 16 }}>
+              Aqui você tem acesso ao seu dashboard para análise crítica e entender rapidamente como anda sua saúde financeira.
+            </Text>
+          </Card>
 
-                  <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>
-                      Ganhos nos últimos 4 meses
-                  </Text>
+          <Text style={styles.title}>Ganhos nos últimos 4 meses</Text>
+          <View style={styles.chartContainer}>
+            { !loaded ? (
+              <ActivityIndicator size="large" />
+            ) : (
+              <LineChart
+                data={{
+                  labels: [getMesLabel(3), getMesLabel(2), getMesLabel(1), getMesLabel(0)],
+                  datasets: [{ data: ganhosData }]
+                }}
+                width={screenWidth}
+                height={200}
+                yAxisLabel="R$"
+                yAxisSuffix="k"
+                chartConfig={{
+                  backgroundColor: "#333c70",
+                  backgroundGradientFrom: "#3b5da5",
+                  backgroundGradientTo: "#9294af",
+                  decimalPlaces: 2,
+                  color: (opacity = 1) => `rgba(255,255,255,${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(255,255,255,${opacity})`
+                }}
+                bezier
+                style={{ borderRadius: 12 }}
+              />
+            )}
+          </View>
 
-                  <LineChart
-                    data={{
-                      labels: [meses[mesAtual-4], meses[mesAtual-3], meses[mesAtual-2], meses[mesAtual-1]],
-                      datasets: [
-                        {
-                          data: [
-                            mesGPrimeiro / 1000,
-                            mesGSegundo / 1000,
-                            mesGTerceiro / 1000,
-                            mesGUltimo / 1000
-                          ]
-                        }
-                      ]
-                    }}
-                    width={screenWidth}
-                    height={220}
-                    yAxisLabel="R$"
-                    yAxisSuffix="k"
-                    yAxisInterval={1} // optional, defaults to 1
-                    chartConfig={{
-                      backgroundColor: "#333c70ff",
-                      backgroundGradientFrom: "#3b5da5ff",
-                      backgroundGradientTo: "#9294afff",
-                      decimalPlaces: 2, // optional, defaults to 2dp
-                      color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: {
-                        borderRadius: 10
-                      },
-                      propsForDots: {
-                        r: "6",
-                        strokeWidth: "2",
-                        stroke: "#ffa726"
-                      }
-                    }}
-                    bezier
-                    style={{
-                      marginVertical: 8,
-                      borderRadius: 16
-                    }}
-                />
+          <Divider />
 
-                <Divider />
+          <Text style={styles.title}>Despesas nos últimos 4 meses</Text>
+          <View style={styles.chartContainer}>
+            { !loaded ? (
+              <ActivityIndicator size="large" color={'#28a745'}/>
+            ) : (
+              <BarChart
+                data={{
+                  labels: [getMesLabel(3), getMesLabel(2), getMesLabel(1), getMesLabel(0)],
+                  datasets: [{ data: despesasData }]
+                }}
+                width={screenWidth}
+                height={200}
+                yAxisLabel="R$"
+                yAxisSuffix="k"
+                chartConfig={{
+                  backgroundColor: "#200c10",
+                  backgroundGradientFrom: "#8b0e14",
+                  backgroundGradientTo: "#500404",
+                  decimalPlaces: 2,
+                  color: (opacity = 1) => `rgba(255,255,255,${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(255,255,255,${opacity})`
+                }}
+                verticalLabelRotation={30}
+                style={{ borderRadius: 12 }}
+              />
+            )}
+          </View>
 
-                <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>
-                    Despesas nos últimos 4 meses
-                </Text>
+          <Divider />
 
-                <BarChart
-                  data={
-                    {
-                      labels: [meses[mesAtual-4].substring(0, 3), meses[mesAtual-3].substring(0, 3), meses[mesAtual-2].substring(0, 3), meses[mesAtual-1].substring(0, 3)],
-                      datasets: [
-                        {
-                          data: [
-                            mesDPrimeiro / 1000,
-                            mesDSegundo / 1000,
-                            mesDTerceiro / 1000,
-                            mesDUltimo / 1000
-                          ]
-                        }
-                      ]
-                    }
-                  }
-                  width={screenWidth}
-                  height={220}
-                  yAxisLabel="R$"
-                  yAxisSuffix="k"
-                  chartConfig={
-                    {
-                      backgroundColor: "#200c10ff",
-                      backgroundGradientFrom: "#8b0e14ff",
-                      backgroundGradientTo: "#500404ff",
-                      decimalPlaces: 2,
-                      color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: {
-                        borderRadius: 10
-                      },
-                      propsForDots: {
-                        r: "6",
-                        strokeWidth: "2",
-                        stroke: "#ffa726"
-                      }
-                    }
-                  }
-                  verticalLabelRotation={30}
-                  style={{
-                      marginVertical: 8,
-                      borderRadius: 16
-                  }}
-                />
-
-                <Divider />
-
-                <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 10, textAlign: 'center' }}>
-                    Maiores despesas do ano
-                </Text>
-
+          <Text style={styles.title}>Maiores despesas do ano</Text>
+          <View style={styles.chartContainer}>
+            { !loaded ? (
+              <ActivityIndicator size="large" color={'#28a745'} />
+            ) : (
+              pieTotal > 0 ? (
                 <PieChart
-                  data={data}
+                  data={pieData}
                   width={screenWidth}
-                  height={220}
-                  chartConfig={
-                    {
-                      color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                      style: {
-                        borderRadius: 10
-                      },
-                      propsForDots: {
-                        r: "6",
-                        strokeWidth: "2",
-                        stroke: "#ffa726"
-                      }
-                    }
-                  }
-                  style={{
-                      marginVertical: 8,
-                      borderRadius: 16
+                  height={200}
+                  chartConfig={{
+                    color: (opacity = 1) => `rgba(255,255,255,${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(255,255,255,${opacity})`
                   }}
-                  accessor={"population"}
-                  backgroundColor={"#323335ff"}
-                  paddingLeft={"5"}
-                  center={[10, 10]}
+                  accessor="population"
+                  backgroundColor="#323335"
+                  paddingLeft="15"
                   absolute
+                  style={{ borderRadius: 12 }}
                 />
+              ) : (
+                <Card containerStyle={{ marginHorizontal: 0 }}>
+                  <Text style={{ textAlign: 'center' }}>Nenhuma despesa registrada neste ano.</Text>
+                </Card>
+              )
+            )}
+          </View>
 
-                <Divider />
-                <Text>{'\n\n\n'}</Text>
-
-              </View>   
-              
-          </ScrollView>
-      </>
+          <Divider />
+          <Text>{'\n\n\n'}</Text>
+        </View>
+      </ScrollView>
+    </>
   );
 }
+
+const styles = StyleSheet.create({
+  chartContainer: {
+    height: 220,
+    borderRadius: 12,
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 8
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 10,
+    textAlign: 'center'
+  }
+});
